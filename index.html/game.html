@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>互动数字展览｜动物与艺术家一起赏画</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      color: #33251b;
+      background: #f4eadc;
+      overflow-x: hidden;
+    }
+
+    button { font-family: inherit; }
+
+    .screen {
+      display: none;
+      min-height: 100vh;
+      padding: 28px;
+      animation: screenFade 0.6s ease both;
+    }
+
+    .screen.active { display: block; }
+
+    @keyframes screenFade {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1180px;
+      margin: 0 auto 20px;
+    }
+
+    .brand { font-size: 24px; font-weight: 800; letter-spacing: 0.08em; }
+    .hint { font-size: 14px; opacity: 0.72; }
+
+    .primary-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 22px;
+      background: #9a5d38;
+      color: white;
+      cursor: pointer;
+      font-weight: 700;
+      box-shadow: 0 10px 22px rgba(95, 51, 22, 0.22);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-2px);
+      background: #7e4728;
+      box-shadow: 0 14px 28px rgba(95, 51, 22, 0.28);
+    }
+
+    .secondary-btn {
+      border: 1px solid rgba(88, 57, 35, 0.25);
+      border-radius: 999px;
+      padding: 12px 22px;
+      background: rgba(255,255,255,0.5);
+      color: #553421;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    /* 画廊界面 */
+    #galleryScreen {
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255, 237, 196, 0.75), transparent 30%),
+        linear-gradient(180deg, #efe0cf 0%, #e8d6c1 64%, #b9936a 64%, #9f774d 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #galleryScreen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 80px);
+      pointer-events: none;
+    }
+
+    .gallery-title { max-width: 1180px; margin: 0 auto 28px; text-align: center; }
+    .gallery-title h1 { margin: 10px 0; font-size: clamp(34px, 6vw, 68px); letter-spacing: 0.12em; }
+    .gallery-title p { margin: 0; opacity: 0.72; }
+
+    .museum-hall {
+      position: relative;
+      max-width: 1180px;
+      margin: 0 auto;
+      min-height: 560px;
+      border-radius: 34px 34px 12px 12px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(90, 52, 28, 0.08), transparent 14%, transparent 86%, rgba(90, 52, 28, 0.08)),
+        linear-gradient(180deg, #ead8c2 0 66%, #8b613a 66% 100%);
+      box-shadow: inset 0 20px 60px rgba(255,255,255,0.35), 0 24px 60px rgba(69, 39, 19, 0.22);
+      perspective: 1000px;
+    }
+
+    .ceiling-lights { display: flex; justify-content: space-around; height: 90px; padding: 0 80px; }
+    .light {
+      width: 120px;
+      height: 240px;
+      background: radial-gradient(ellipse at top, rgba(255,242,198,0.9), rgba(255,242,198,0.3) 34%, transparent 70%);
+      clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+      opacity: 0.9;
+    }
+
+    .art-wall {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 36px;
+      padding: 28px 44px 30px;
+      flex-wrap: wrap;
+      transform-style: preserve-3d;
+    }
+
+    .art-card {
+      position: relative;
+      width: 210px;
+      padding: 15px 15px 18px;
+      background: #fff8ed;
+      border: 10px solid #7a4c2d;
+      box-shadow: 0 18px 36px rgba(59, 34, 18, 0.32);
+      cursor: pointer;
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+      transform-origin: center center;
+    }
+
+    .art-card::before {
+      content: "";
+      position: absolute;
+      left: 50%; top: -28px;
+      width: 1px; height: 28px;
+      background: rgba(74, 42, 22, 0.5);
+      pointer-events: none;
+    }
+
+    .art-card::after {
+      content: "";
+      position: absolute;
+      left: 50%; top: -34px;
+      width: 8px; height: 8px;
+      background: #6c4327;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .art-card:hover {
+      transform: scale(1.1) rotateY(9deg) rotateZ(-1.5deg) translateY(-10px);
+      box-shadow: 0 26px 52px rgba(59, 34, 18, 0.42);
+      z-index: 2;
+    }
+
+    .painting-img {
+      height: 145px;
+      border-radius: 4px;
+      background-size: cover;
+      background-position: center;
+      pointer-events: none;
+    }
+
+    .label {
+      margin: 12px auto 0;
+      width: 78%;
+      padding: 8px 10px;
+      background: #efe2d0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .bench {
+      position: absolute;
+      left: 50%; bottom: 72px;
+      width: 280px; height: 32px;
+      border-radius: 16px 16px 7px 7px;
+      background: #5f3823;
+      transform: translateX(-50%);
+      box-shadow: 0 12px 0 #3f2417;
+      pointer-events: none;
+    }
+
+    .floor-lines {
+      position: absolute;
+      inset: auto 0 0;
+      height: 190px;
+      background:
+        linear-gradient(105deg, transparent 45%, rgba(255,255,255,0.14) 46%, transparent 47%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.09) 0 2px, transparent 2px 82px);
+      opacity: 0.65;
+      pointer-events: none;
+    }
+
+    /* 动物花园 + 艺术家 */
+    #gardenScreen {
+      background:
+        radial-gradient(circle at 16% 20%, rgba(255,255,255,0.58), transparent 26%),
+        linear-gradient(180deg, #dceecf 0%, #c8e2bb 48%, #b1cf9d 100%);
+    }
+
+    .garden-stage {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 26px;
+      align-items: stretch;
+    }
+
+    .panel {
+      border-radius: 32px;
+      background: rgba(255, 250, 238, 0.78);
+      box-shadow: 0 18px 38px rgba(63, 78, 46, 0.18);
+      padding: 24px;
+      backdrop-filter: blur(6px);
+    }
+
+    .panel h2 { margin: 0 0 6px; }
+    .panel p { margin: 0 0 20px; opacity: 0.72; line-height: 1.7; }
+
+    .fenced-yard {
+      position: relative;
+      min-height: 430px;
+      border-radius: 28px;
+      background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.42), transparent 22%), linear-gradient(180deg, #a8d58a, #79b45e);
+      border: 10px solid #9a6a3b;
+      outline: 6px dashed rgba(117, 75, 38, 0.65);
+      outline-offset: -20px;
+      overflow: hidden;
+    }
+
+    .fenced-yard::before {
+      content: "";
+      position: absolute;
+      inset: 24px;
+      border-radius: 20px;
+      border: 3px dashed rgba(255,255,255,0.55);
+      pointer-events: none;
+    }
+
+    .animal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      padding: 58px 32px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .animal-card {
+      min-height: 132px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.62);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: transform 0.28s ease, background 0.28s ease, border-color 0.28s ease;
+    }
+
+    .animal-card:hover { transform: translateY(-8px) rotate(-2deg) scale(1.04); background: rgba(255,255,255,0.86); }
+    .animal-card.invited { border-color: #9a5d38; background: #fff1cf; box-shadow: 0 12px 24px rgba(89, 55, 24, 0.22); }
+    .animal-emoji { font-size: 48px; animation: idleBounce 2.2s ease-in-out infinite; }
+    .animal-name { margin-top: 8px; font-weight: 800; }
+    .invite-tag { margin-top: 7px; font-size: 12px; opacity: 0.7; }
+
+    @keyframes idleBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+
+    .artist-area {
+      min-height: 430px;
+      border-radius: 28px;
+      padding: 26px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.48), transparent 40%), #d7bd98;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .artist-area::after {
+      content: "";
+      position: absolute;
+      left: -8%; right: -8%; bottom: 0;
+      height: 90px;
+      background: repeating-linear-gradient(90deg, rgba(95,56,35,0.18) 0 4px, transparent 4px 70px);
+      pointer-events: none;
+    }
+
+    .artist-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .artist-card {
+      background: #fff8ed;
+      border-radius: 20px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 3px solid transparent;
+    }
+    .artist-card:hover { transform: translateY(-4px); }
+    .artist-card.invited { border-color: #885c3a; background: #ffe6cc; }
+    /* 核心修改1：邀约界面头像 - 移除圆形框，只显示贴图 */
+    .artist-avatar {
+      width: 70px;
+      height: 70px;
+      /* 移除所有边框/背景/圆角，让贴图完整显示 */
+      background: none;
+      border-radius: 0;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      /* 保证贴图完整展示 */
+      overflow: visible;
+    }
+    .chair {
+      font-size: 24px;
+      margin-top: -4px;
+    }
+    .artist-name {
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .dialog {
+      font-size: 12px;
+      opacity: 0.65;
+      text-align: center;
+    }
+
+    .garden-footer {
+      max-width: 1180px;
+      margin: 24px auto 0;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* 赏画界面 */
+    #viewingScreen {
+      background:
+        radial-gradient(circle at 50% 5%, rgba(255,238,192,0.9), transparent 34%),
+        linear-gradient(180deg, #251a16 0%, #39241e 58%, #5a382c 58%, #362018 100%);
+      color: #fff8ed;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .viewing-layout {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 26px;
+      align-items: start;
+    }
+
+    .painting-stage {
+      position: relative;
+      min-height: 600px;
+      border-radius: 34px;
+      padding: 42px;
+      background: rgba(255,255,255,0.06);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+
+    .spotlight {
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      width: 420px;
+      height: 520px;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse at top, rgba(255,230,160,0.6), transparent 70%);
+      pointer-events: none;
+    }
+
+    .main-art {
+      position: relative;
+      z-index: 1;
+      width: min(460px, 92%);
+      height: 320px;
+      margin: 34px auto 22px;
+      border: 14px solid #c19053;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 28px 44px rgba(0,0,0,0.48);
+    }
+
+    .main-art-title {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      font-size: 30px;
+      font-weight: 900;
+      margin: 0;
+    }
+
+    .character {
+      position: absolute;
+      z-index: 3;
+      filter: drop-shadow(0 10px 10px rgba(0,0,0,0.35));
+    }
+
+    .character.animal {
+      font-size: 42px;
+      animation: floatAround 5s ease-in-out infinite;
+    }
+
+    /* 核心修改2：赏画界面艺术家 - 移除所有圆形框，只显示完整头像贴图 */
+    .character.artist {
+      width: 94px;
+      height: 94px;
+      /* 移除所有边框/背景/圆角 */
+      background: none;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+      /* 保留动画 */
+      animation: gentleNod 3s ease-in-out infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* 保证贴图完整展示 */
+      overflow: visible;
+    }
+    .artist-avatar-mini {
+      width: 100%;
+      height: 100%;
+      /* 移除圆角，让贴图完整显示 */
+      border-radius: 0;
+      background-size: contain; /* 改为contain，保证贴图完整 */
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    /* 隐藏姓名框 */
+    .character.artist .artist-name,
+    .character.artist .chair,
+    .character.artist .dialog {
+      display: none !important;
+    }
+
+    @keyframes floatAround {
+      0%, 100% { transform: translate(0, 0) rotate(-4deg); }
+      25% { transform: translate(12px, -14px) rotate(5deg); }
+      50% { transform: translate(-8px, 8px) rotate(-2deg); }
+      75% { transform: translate(10px, 12px) rotate(6deg); }
+    }
+
+    @keyframes gentleNod {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .speech-bubble {
+      position: absolute;
+      z-index: 8;
+      max-width: 245px;
+      padding: 12px 14px;
+      border-radius: 18px 18px 18px 6px;
+      background: rgba(255, 253, 248, 0.96);
+      color: #33251b;
+      line-height: 1.55;
+      font-size: 14px;
+      box-shadow: 0 14px 28px rgba(0,0,0,0.26);
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, 0);
+      animation: speechRise 4.2s ease forwards;
+    }
+
+    .speech-bubble.animal { background: #ffe8ea; border: 1px solid #f5a7af; }
+    .speech-bubble.artist { background: #e8f0ff; border: 1px solid #9ebcff; }
+    .speech-bubble.user { background: #fff3d7; border: 1px solid #f1c977; }
+
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      left: 22px;
+      bottom: -8px;
+      width: 16px; height: 16px;
+      background: inherit;
+      transform: rotate(45deg);
+      box-shadow: 4px 4px 8px rgba(0,0,0,0.05);
+    }
+
+    @keyframes speechRise {
+      0% { opacity: 0; transform: translate(-50%, 14px) scale(0.92); }
+      12% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      72% { opacity: 1; transform: translate(-50%, -36px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -86px) scale(0.96); }
+    }
+
+    .comment-panel {
+      border-radius: 34px;
+      padding: 26px;
+      background: rgba(255, 248, 237, 0.95);
+      color: #33251b;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+    }
+
+    .comment-panel h2 { margin: 0 0 8px; }
+    .comment-panel p { margin: 0 0 18px; line-height: 1.7; opacity: 0.74; }
+
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+      border: 1px solid #d5b993;
+      border-radius: 20px;
+      padding: 16px;
+      font-size: 15px;
+      outline: none;
+      background: #fffdf8;
+    }
+
+    textarea:focus {
+      border-color: #9a5d38;
+      box-shadow: 0 0 0 4px rgba(154, 93, 56, 0.12);
+    }
+
+    .comments {
+      margin-top: 20px;
+      min-height: 92px;
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(154, 93, 56, 0.08);
+      color: rgba(51, 37, 27, 0.72);
+      line-height: 1.7;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .chat-item {
+      margin: 4px 0;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+    .chat-item.user { background: rgba(255, 243, 215, 0.4); }
+    .chat-item.animal { background: rgba(255, 232, 234, 0.4); }
+    .chat-item.artist { background: rgba(232, 240, 255, 0.4); }
+    .chat-time { font-size: 10px; opacity: 0.6; margin-left: 8px; }
+
+    @media (max-width: 900px) {
+      .garden-stage, .viewing-layout { grid-template-columns: 1fr; }
+      .animal-grid, .artist-grid { grid-template-columns: 1fr 1fr; }
+      .screen { padding: 18px; }
+      .main-art { height: 250px; }
+    }
+  </style>
+</head>
+<body>
+  <section id="galleryScreen" class="screen active">
+    <div class="topbar">
+      <div class="brand">互动数字展览</div>
+      <div class="hint">第一步：在展厅中选择一幅作品</div>
+    </div>
+
+    <div class="gallery-title">
+      <h1>慢慢逛展</h1>
+      <p>画作悬挂在展墙上，移动鼠标靠近它们，选择你想邀请大家一起观看的作品。</p>
+    </div>
+
+    <div class="museum-hall">
+      <div class="ceiling-lights"><div class="light"></div><div class="light"></div><div class="light"></div></div>
+      <div class="art-wall">
+        <div class="art-card" data-title="家山夏日" data-img="家山夏日.png">
+          <div class="painting-img" style="background-image:url('家山夏日.png')"></div><div class="label">朱平｜家山夏日</div>
+        </div>
+        <div class="art-card" data-title="哈尼村寨的午后" data-img="哈尼村寨的午后.png">
+          <div class="painting-img" style="background-image:url('哈尼村寨的午后.png')"></div><div class="label">杜龙琪｜哈尼村寨的午后</div>
+        </div>
+        <div class="art-card" data-title="温泉摩崖石刻" data-img="温泉摩崖石刻.png">
+          <div class="painting-img" style="background-image:url('温泉摩崖石刻.png')"></div><div class="label">包朝阳｜温泉摩崖石刻</div>
+        </div>
+        <div class="art-card" data-title="孔雀的舞蹈" data-img="孔雀的舞蹈.png">
+          <div class="painting-img" style="background-image:url('孔雀的舞蹈.png')"></div><div class="label">李建华｜孔雀的舞蹈</div>
+        </div>
+      </div>
+      <div class="bench"></div><div class="floor-lines"></div>
+    </div>
+  </section>
+
+  <section id="gardenScreen" class="screen">
+    <div class="topbar">
+      <div class="brand">动物花园与艺术家座谈区</div>
+      <div class="hint">第二步：点击邀请同行者</div>
+    </div>
+
+    <div class="garden-stage">
+      <div class="panel">
+        <h2>围栏里的小动物</h2>
+        <p>点击小动物，向它发出一起赏画的邀约。被邀请的小动物会在最终展厅里漂浮陪伴。</p>
+        <div class="fenced-yard">
+          <div class="animal-grid">
+            <div class="animal-card" data-name="猫咪" data-emoji="🐱"><div class="animal-emoji">🐱</div><div class="animal-name">猫咪</div><div class="invite-tag">点击邀约</div></div>
+            <div class="animal-card" data-name="兔子" data-emoji="🐰"><div class="animal-emoji">🐰</div><div class="animal-name">兔子</div><div class="invite-tag">点击邀约</div></div>
+            <div class="animal-card" data-name="小狗" data-emoji="🐶"><div class="animal-emoji">🐶</div><div class="animal-name">小狗</div><div class="invite-tag">点击邀约</div></div>
+            <div class="animal-card" data-name="狐狸" data-emoji="🦊"><div class="animal-emoji">🦊</div><div class="animal-name">狐狸</div><div class="invite-tag">点击邀约</div></div>
+            <div class="animal-card" data-name="熊猫" data-emoji="🐼"><div class="animal-emoji">🐼</div><div class="animal-name">熊猫</div><div class="invite-tag">点击邀约</div></div>
+            <div class="animal-card" data-name="小鸟" data-emoji="🐦"><div class="animal-emoji">🐦</div><div class="animal-name">小鸟</div><div class="invite-tag">点击邀约</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>围栏外的艺术家们</h2>
+        <p>点击头像邀请艺术家一起赏画。</p>
+        <div class="artist-area">
+          <div class="artist-grid">
+            <!-- 替换这里的data-avatar为你的梵高头像链接 -->
+            <div class="artist-card" data-name="梵高" data-avatar="梵高.png">
+              <div class="artist-avatar">🌻</div>
+              <div class="chair">🪑</div>
+              <div class="artist-name">梵高</div>
+              <div class="dialog">我想和你一起看光与色</div>
+            </div>
+            <div class="artist-card" data-name="毕加索" data-avatar="毕加索.png">
+              <div class="artist-avatar">🔷</div>
+              <div class="chair">🪑</div>
+              <div class="artist-name">毕加索</div>
+              <div class="dialog">我能从不同角度看它</div>
+            </div>
+            <div class="artist-card" data-name="达芬奇" data-avatar="达芬奇.png">
+              <div class="artist-avatar">🪽</div>
+              <div class="chair">🪑</div>
+              <div class="artist-name">达芬奇</div>
+              <div class="dialog">我会观察它的结构</div>
+            </div>
+            <div class="artist-card" data-name="莫奈" data-avatar="莫奈.png">
+              <div class="artist-avatar">🪷</div>
+              <div class="chair">🪑</div>
+              <div class="artist-name">莫奈</div>
+              <div class="dialog">我喜欢光影与水面</div>
+            </div>
+            <div class="artist-card" data-name="米开朗基罗" data-avatar="米开朗琪罗.png">
+              <div class="artist-avatar">🗿</div>
+              <div class="chair">🪑</div>
+              <div class="artist-name">米开朗基罗</div>
+              <div class="dialog">我能看见力量与姿态</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="garden-footer">
+      <button class="secondary-btn" id="backToGallery">返回画廊重选画作</button>
+      <button class="primary-btn" id="startViewing">确认邀请，一起赏画</button>
+    </div>
+  </section>
+
+  <section id="viewingScreen" class="screen">
+    <div class="topbar">
+      <div class="brand">一起赏画</div>
+      <div class="hint">第三步：输入你的评价，气泡会从角色头顶冒出</div>
+    </div>
+
+    <div class="viewing-layout">
+      <div class="painting-stage" id="paintingStage">
+        <div class="spotlight"></div>
+        <h1 class="main-art-title" id="selectedTitle">作品标题</h1>
+        <div class="main-art" id="selectedArtwork"></div>
+      </div>
+
+      <div class="comment-panel">
+        <h2>写下你的观展感受</h2>
+        <p>提交后，评论会从你、小动物和艺术家头顶冒出，向上漂浮后消失。</p>
+        <textarea id="userComment" placeholder="例如：我觉得这幅画的颜色很梦幻，也有一点孤独感……"></textarea>
+        <div style="margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="primary-btn" id="submitComment">提交评价</button>
+          <button class="secondary-btn" id="restart">重新开始</button>
+        </div>
+        <div class="comments" id="comments">气泡会出现在左侧赏画空间中。</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const screens = {
+      gallery: document.getElementById('galleryScreen'),
+      garden: document.getElementById('gardenScreen'),
+      viewing: document.getElementById('viewingScreen')
+    };
+
+    const state = { 
+      artwork: null, 
+      animals: [], 
+      artists: [],
+      messageQueues: {
+        user: [],
+        animal: {},
+        artist: {}
+      },
+      isProcessingQueue: false
+    };
+
+    const bubbleOffsets = {
+      animal: {},
+      artist: {},
+      user: 0
+    };
+
+    const animalResponses = {
+      '猫咪': ['我会先看画面里的安静角落，这里好像有一块可以蜷起来的小阴影。', '颜色之间有很细腻的层次，像我走路时轻轻落下的爪印。', '这幅画让我想眯起眼睛，慢慢观察它的光。'],
+      '兔子': ['我觉得它很柔软，好像可以跳进画里的草地或云朵。', '这些颜色让我想到胡萝卜旁边的清晨露水。', '画面有一点轻轻颤动的感觉，我想靠近一点看。'],
+      '小狗': ['我最喜欢它热闹的部分！好像下一秒就能跑进去玩。', '这幅画一定有很多味道，我想闻闻风、木头和阳光。', '我觉得它很有精神，像是在叫我一起出门。'],
+      '狐狸': ['我喜欢它藏起来的线索，画面里似乎有一个秘密入口。', '这幅画很聪明，它没有把所有故事都直接说出来。', '我会从边缘开始看，因为秘密通常躲在边缘。'],
+      '熊猫': ['我觉得它很舒服，适合慢慢看，最好一边看一边吃点竹子。', '画面里的节奏不急，像一个午后的长梦。', '我喜欢这种稳稳的感觉，看起来很安心。'],
+      '小鸟': ['我想从高处俯瞰它，画面像一阵可以飞过的风。', '颜色在流动，好像每一笔都有翅膀。', '我听见了画里的声音，它可能是一段很轻的旋律。']
+    };
+
+    const artistDialogs = {
+      '梵高': ['我愿意一起去看。请让我靠近那些发光的颜色。', '如果那里有夜空，我会带上我的星星。', '我想知道，你在这幅画里看见了热烈还是孤独？'],
+      '毕加索': ['当然。也许我们可以从另一个角度看它。', '形状不会只有一种样子，我想和你一起拆开它。', '我会坐过去，但我可能会把它看成好几个面。'],
+      '达芬奇': ['我接受邀请。让我观察它的结构、光线与比例。', '艺术与科学可以一起进入这幅画。', '我会问：它为什么这样构成？答案也许在细节里。'],
+      '莫奈': ['我很乐意。请给我一点时间看光落在哪里。', '我想看看空气和颜色如何在画面中相遇。', '如果有水面或花影，我一定会靠近。'],
+      '米开朗基罗': ['我来。我要看看它是否有力量与身体感。', '线条如果足够有力，就像石头里站起来的人。', '我会注意它的重量、姿态和精神。']
+    };
+
+    const artistResponses = {
+      '梵高': ['我看到色彩像情绪一样燃烧，它不是安静的表面，而是一种内心的震动。', '这幅画最动人的地方，是它让光线变得像生命一样急促。', '我会说：它的颜色不是在描述世界，而是在表达世界如何刺痛心灵。'],
+      '毕加索': ['我不只看它像什么，我更关心它如何被拆解、重组、再变成新的观看方式。', '这里的形状很有张力，它提醒我们：现实可以有许多面。', '如果换一个角度，这幅画也许会说出完全不同的话。'],
+      '达芬奇': ['我注意到构图中的秩序。好的画面往往让感性与理性同时成立。', '细节是通往整体的入口，观察越久，结构越清晰。', '它吸引我的地方，在于光、比例和视觉重心之间的关系。'],
+      '莫奈': ['我更愿意把它看成一次光的停留。颜色不是固定的，它们正在空气里变化。', '这幅画的美不只在对象，而在对象被光触碰的一瞬间。', '我喜欢它的氛围，它像是记忆里慢慢散开的风景。'],
+      '米开朗基罗': ['我看见一种力量。即使是柔和的画面，也可能拥有雕塑般的骨架。', '它的线条有姿态，画面仿佛在暗处支撑着自己的重量。', '我会称赞它的精神感：美不是装饰，而是力量的显现。']
+    };
+
+    function switchScreen(name) {
+      Object.values(screens).forEach(screen => screen.classList.remove('active'));
+      screens[name].classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+    // 加载艺术家头像
+    function loadArtistAvatars() {
+      document.querySelectorAll('.artist-card').forEach(card => {
+        const url = card.dataset.avatar;
+        const av = card.querySelector('.artist-avatar');
+        if (url && av) {
+          av.style.backgroundImage = `url(${url})`;
+          av.style.backgroundSize = 'contain'; // 改为contain，保证贴图完整
+          av.style.backgroundRepeat = 'no-repeat';
+          av.style.backgroundPosition = 'center';
+          av.textContent = ''; // 清空默认表情
+        }
+      });
+    }
+
+    function getRandomInterval() {
+      return 600 + Math.random() * 400;
+    }
+
+    function addChatRecord(content, type, name = '你') {
+      const commentsContainer = document.getElementById('comments');
+      if (commentsContainer.textContent === '气泡会出现在左侧赏画空间中。' || commentsContainer.textContent === '大家正在用气泡回应你的评价……') {
+        commentsContainer.innerHTML = '';
+      }
+      
+      const chatItem = document.createElement('div');
+      chatItem.className = `chat-item ${type}`;
+      
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      
+      chatItem.innerHTML = `<strong>${name}</strong>：${content} <span class="chat-time">${timeStr}</span>`;
+      commentsContainer.appendChild(chatItem);
+      commentsContainer.scrollTop = commentsContainer.scrollHeight;
+    }
+
+    async function processMessageQueue() {
+      if (state.isProcessingQueue) return;
+      state.isProcessingQueue = true;
+
+      if (state.messageQueues.user.length > 0) {
+        const msg = state.messageQueues.user.shift();
+        showStageBubbleNearArtwork(`你：${msg.content}`, 'user');
+        addChatRecord(msg.content, 'user');
+        await sleep(getRandomInterval());
+      }
+
+      for (const animalName in state.messageQueues.animal) {
+        const queue = state.messageQueues.animal[animalName];
+        if (queue.length > 0) {
+          const msg = queue.shift();
+          const character = document.querySelector(`.character.animal[data-name="${animalName}"]`);
+          const displayText = `${msg.emoji} ${animalName}：${msg.content}`;
+          showSpeechBubble(character, displayText, 'animal');
+          addChatRecord(msg.content, 'animal', animalName);
+          await sleep(getRandomInterval());
+        }
+      }
+
+      for (const artistName in state.messageQueues.artist) {
+        const queue = state.messageQueues.artist[artistName];
+        if (queue.length > 0) {
+          const msg = queue.shift();
+          const character = document.querySelector(`.character.artist[data-name="${artistName}"]`);
+          const displayText = `${artistName}：${msg.content}`;
+          showSpeechBubble(character, displayText, 'artist');
+          addChatRecord(msg.content, 'artist', artistName);
+          await sleep(getRandomInterval());
+        }
+      }
+
+      state.isProcessingQueue = false;
+      const hasRemainingMessages =
+        state.messageQueues.user.length > 0 ||
+        Object.values(state.messageQueues.animal).some(q => q.length > 0) ||
+        Object.values(state.messageQueues.artist).some(q => q.length > 0);
+      
+      if (hasRemainingMessages) {
+        processMessageQueue();
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    loadArtistAvatars();
+
+    document.querySelector('.art-wall').addEventListener('click', event => {
+      const card = event.target.closest('.art-card');
+      if (!card) return;
+      state.artwork = { title: card.dataset.title, img: card.dataset.img };
+      switchScreen('garden');
+    });
+
+    document.querySelectorAll('.animal-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const name = card.dataset.name;
+        const emoji = card.dataset.emoji;
+        const index = state.animals.findIndex(item => item.name === name);
+        if (index >= 0) {
+          state.animals.splice(index, 1);
+          card.classList.remove('invited');
+          card.querySelector('.invite-tag').textContent = '点击邀约';
+        } else {
+          state.animals.push({ name, emoji });
+          card.classList.add('invited');
+          card.querySelector('.invite-tag').textContent = '已接受邀约';
+        }
+      });
+    });
+
+    document.querySelectorAll('.artist-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const name = card.dataset.name;
+        const index = state.artists.indexOf(name);
+        if (index >= 0) {
+          state.artists.splice(index, 1);
+          card.classList.remove('invited');
+        } else {
+          state.artists.push(name);
+          card.classList.add('invited');
+        }
+      });
+    });
+
+    document.getElementById('backToGallery').addEventListener('click', () => switchScreen('gallery'));
+
+    document.getElementById('startViewing').addEventListener('click', () => {
+      if (!state.artwork) {
+        alert('请先选择一幅画作。');
+        switchScreen('gallery');
+        return;
+      }
+      if (state.animals.length === 0 && state.artists.length === 0) {
+        alert('请至少邀请一位小动物或艺术家。');
+        return;
+      }
+      setupViewingRoom();
+      switchScreen('viewing');
+    });
+
+    function setupViewingRoom() {
+      document.getElementById('selectedTitle').textContent = state.artwork.title;
+      document.getElementById('selectedArtwork').style.backgroundImage = `url('${state.artwork.img}')`;
+      document.getElementById('comments').textContent = '气泡会出现在左侧赏画空间中。';
+      document.getElementById('userComment').value = '';
+      document.querySelectorAll('.character, .speech-bubble').forEach(el => el.remove());
+
+      state.messageQueues = { user: [], animal: {}, artist: {} };
+      state.isProcessingQueue = false;
+
+      bubbleOffsets.animal = {};
+      bubbleOffsets.artist = {};
+      bubbleOffsets.user = 0;
+
+      const stage = document.getElementById('paintingStage');
+      const animalPositions = [
+        { left: '11%', top: '28%' }, { left: '76%', top: '28%' }, { left: '18%', top: '72%' },
+        { left: '73%', top: '72%' }, { left: '42%', top: '16%' }, { left: '48%', top: '78%' }
+      ];
+
+      state.animals.forEach((animal, index) => {
+        const el = document.createElement('div');
+        el.className = 'character animal';
+        el.dataset.name = animal.name;
+        el.dataset.kind = 'animal';
+        el.textContent = animal.emoji;
+        const pos = animalPositions[index % animalPositions.length];
+        el.style.left = pos.left;
+        el.style.top = pos.top;
+        el.style.animationDelay = `${index * 0.35}s`;
+        stage.appendChild(el);
+        state.messageQueues.animal[animal.name] = [];
+        bubbleOffsets.animal[animal.name] = 0;
+      });
+
+      const artistPositions = [
+        { right: '8%', top: '18%' }, { right: '7%', top: '34%' }, { right: '8%', top: '50%' },
+        { left: '7%', top: '18%' }, { left: '7%', top: '50%' }
+      ];
+
+      state.artists.forEach((artist, index) => {
+        const el = document.createElement('div');
+        el.className = 'character artist';
+        el.dataset.name = artist;
+        el.dataset.kind = 'artist';
+
+        const card = document.querySelector(`.artist-card[data-name="${artist}"]`);
+        const url = card?.dataset.avatar || '';
+
+        // 只显示完整头像贴图，无任何额外框体
+        el.innerHTML = `
+          <div class="artist-avatar-mini" style="background-image: url('${url}')"></div>
+        `;
+
+        Object.assign(el.style, artistPositions[index % artistPositions.length]);
+        el.style.animationDelay = `${index * 0.25}s`;
+        stage.appendChild(el);
+        state.messageQueues.artist[artist] = [];
+        bubbleOffsets.artist[artist] = 0;
+      });
+    }
+
+    document.getElementById('submitComment').addEventListener('click', () => {
+      const text = document.getElementById('userComment').value.trim();
+      if (!text) {
+        alert('请先输入你的评价。');
+        return;
+      }
+
+      document.getElementById('comments').textContent = '大家正在用气泡回应你的评价……';
+      document.querySelectorAll('.speech-bubble').forEach(el => el.remove());
+
+      state.messageQueues.user.push({ content: text });
+
+      state.animals.forEach(animal => {
+        const response = pickRandom(animalResponses[animal.name]);
+        state.messageQueues.animal[animal.name].push({
+          content: response,
+          emoji: animal.emoji
+        });
+      });
+
+      state.artists.forEach(artist => {
+        const response = pickRandom(artistResponses[artist]);
+        state.messageQueues.artist[artist].push({ content: response });
+      });
+
+      processMessageQueue();
+      document.getElementById('userComment').value = '';
+    });
+
+    function showStageBubbleNearArtwork(text, type, delay = 0) {
+      const art = document.getElementById('selectedArtwork');
+      setTimeout(() => showSpeechBubble(art, text, type), delay);
+    }
+
+    function showSpeechBubble(target, text, type) {
+      if (!target) return;
+      const stage = document.getElementById('paintingStage');
+      const stageRect = stage.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+
+      const bubble = document.createElement('div');
+      bubble.className = `speech-bubble ${type}`;
+      bubble.textContent = text;
+
+      let offsetY = -20;
+      let id = '';
+
+      if (type === 'animal') {
+        id = target.dataset.name;
+        offsetY -= bubbleOffsets.animal[id] * 42;
+        bubbleOffsets.animal[id]++;
+      } else if (type === 'artist') {
+        id = target.dataset.name;
+        offsetY -= bubbleOffsets.artist[id] * 42;
+        bubbleOffsets.artist[id]++;
+      } else {
+        offsetY -= bubbleOffsets.user * 42;
+        bubbleOffsets.user++;
+      }
+
+      const randX = (Math.random() - 0.5) * 30;
+      const x = targetRect.left - stageRect.left + targetRect.width / 2 + randX;
+      const y = targetRect.top - stageRect.top + offsetY;
+
+      bubble.style.left = x + 'px';
+      bubble.style.top = y + 'px';
+      bubble.style.zIndex = 9999;
+
+      stage.appendChild(bubble);
+
+      setTimeout(() => {
+        bubble.remove();
+        if (type === 'animal' && bubbleOffsets.animal[id]) bubbleOffsets.animal[id]--;
+        if (type === 'artist' && bubbleOffsets.artist[id]) bubbleOffsets.artist[id]--;
+        if (type === 'user' && bubbleOffsets.user > 0) bubbleOffsets.user--;
+      }, 4200);
+    }
+
+    document.getElementById('restart').addEventListener('click', () => {
+      state.artwork = null;
+      state.animals = [];
+      state.artists = [];
+      state.messageQueues = { user: [], animal: {}, artist: {} };
+      state.isProcessingQueue = false;
+      
+      bubbleOffsets.animal = {};
+      bubbleOffsets.artist = {};
+      bubbleOffsets.user = 0;
+      
+      document.querySelectorAll('.animal-card, .artist-card').forEach(card => card.classList.remove('invited'));
+      document.querySelectorAll('.invite-tag').forEach(tag => tag.textContent = '点击邀约');
+      document.querySelectorAll('.character, .speech-bubble').forEach(el => el.remove());
+      document.getElementById('comments').textContent = '气泡会出现在左侧赏画空间中。';
+      
+      switchScreen('gallery');
+    });
+  </script>
+</body>
+</html>
